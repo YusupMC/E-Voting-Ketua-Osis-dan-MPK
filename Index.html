@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">E-Voting</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .bg-hero { background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); }
+        .loader { border-top-color: #3b82f6; animation: spinner 1.5s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* Layout untuk Berita Acara (Print Mode) */
+        @media print {
+            body * { visibility: hidden; }
+            #print-area, #print-area * { visibility: visible; }
+            #print-area { position: absolute; left: 0; top: 0; width: 100%; padding: 20px; color: black; background: white;}
+            .no-print { display: none !important; }
+            nav, footer { display: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- NAVBAR -->
+    <nav class="bg-white/90 backdrop-blur-md sticky top-0 z-50 border-b border-slate-200 shadow-sm no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <div class="flex items-center cursor-pointer" onclick="app.navigate('landing')">
+                    <img id="nav-logo" src="" alt="Logo" class="h-10 w-10 mr-3 object-contain hidden">
+                    <div id="nav-logo-fallback" class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xl mr-3 shadow-lg shadow-blue-200">EV</div>
+                    <div>
+                        <span id="nav-title" class="font-extrabold text-2xl text-slate-900 tracking-tight block leading-tight">E-Voting</span>
+                        <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Demokrasi Pelajar</span>
+                    </div>
+                </div>
+                <div class="hidden md:flex items-center space-x-6">
+                    <button onclick="app.navigate('public-realcount')" class="text-slate-600 hover:text-blue-600 font-medium px-3 py-2 flex items-center transition"><i data-lucide="bar-chart-2" class="w-4 h-4 mr-2"></i> Real Count</button>
+                    <button onclick="app.navigate('login-admin')" class="text-slate-600 hover:text-blue-600 font-medium px-3 py-2 flex items-center transition"><i data-lucide="shield-check" class="w-4 h-4 mr-2"></i> Admin Panel</button>
+                    <button onclick="app.navigate('login-siswa')" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-full font-semibold transition shadow-md shadow-blue-200 flex items-center"><i data-lucide="log-in" class="w-4 h-4 mr-2"></i> Login Pemilih</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- LOADING OVERLAY -->
+    <div id="loading-overlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] hidden flex-col items-center justify-center no-print">
+        <div class="w-16 h-16 border-4 border-slate-200 border-t-blue-500 rounded-full loader mb-4"></div>
+        <p class="text-white font-medium text-lg animate-pulse" id="loading-text">Memuat...</p>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-grow">
+        
+        <!-- ================= LANDING PAGE ================= -->
+        <div id="view-landing" class="app-view">
+            <!-- Hero Section -->
+            <section class="relative bg-hero text-white overflow-hidden py-24 md:py-32 text-center">
+                <div class="absolute inset-0 bg-[url('[https://www.transparenttextures.com/patterns/cubes.png](https://www.transparenttextures.com/patterns/cubes.png)')] opacity-10"></div>
+                <div class="max-w-7xl mx-auto px-4 relative z-10">
+                    <h1 class="text-5xl md:text-7xl font-extrabold mb-6 leading-tight tracking-tight">Gunakan Hak Pilihmu<br><span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">Untuk Masa Depan</span></h1>
+                    <p class="text-xl text-slate-300 mb-10 max-w-3xl mx-auto font-light">E-Voting cerdas, cepat, jujur dan adil.</p>
+                    <button onclick="app.navigate('login-siswa')" class="px-8 py-4 rounded-full bg-white text-blue-900 font-bold text-lg hover:bg-blue-50 transition shadow-xl flex items-center mx-auto"><i data-lucide="check-circle" class="w-5 h-5 mr-2"></i> Mulai Voting</button>
+                </div>
+            </section>
+
+            <!-- KANDIDAT OSIS SECTION -->
+            <section class="py-20 bg-white border-b border-slate-200">
+                <div class="max-w-7xl mx-auto px-4">
+                    <div class="text-center mb-16">
+                        <span class="text-blue-600 font-bold uppercase tracking-wider text-sm">Kenali Kandidat</span>
+                        <h2 class="text-4xl font-extrabold text-slate-900 mt-2 mb-4">Calon Ketua OSIS</h2>
+                        <div class="w-24 h-1.5 bg-blue-600 mx-auto rounded-full"></div>
+                    </div>
+                    <div id="landing-grid-osis" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-center"></div>
+                </div>
+            </section>
+
+            <!-- KANDIDAT MPK SECTION -->
+            <section class="py-20 bg-slate-50 border-b border-slate-200">
+                <div class="max-w-7xl mx-auto px-4">
+                    <div class="text-center mb-16">
+                        <span class="text-green-600 font-bold uppercase tracking-wider text-sm">Kenali Kandidat</span>
+                        <h2 class="text-4xl font-extrabold text-slate-900 mt-2 mb-4">Calon Ketua MPK</h2>
+                        <div class="w-24 h-1.5 bg-green-600 mx-auto rounded-full"></div>
+                    </div>
+                    <div id="landing-grid-mpk" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-center"></div>
+                </div>
+            </section>
+        </div>
+
+        <!-- ================= PUBLIC REAL COUNT ================= -->
+        <div id="view-public-realcount" class="app-view hidden py-16 bg-slate-100">
+            <div class="max-w-5xl mx-auto px-4">
+                <div class="text-center mb-10">
+                    <h2 class="text-4xl font-extrabold text-slate-900 mb-2">Live Real Count</h2>
+                    <p class="text-slate-500">Hasil perolehan suara sementara dipublikasikan secara transparan.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm text-center border-t-4 border-blue-500">
+                        <p class="text-slate-500 font-bold uppercase text-sm">Suara Masuk</p>
+                        <h3 class="text-5xl font-extrabold text-blue-600 mt-2" id="pub-rc-masuk">0</h3>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm text-center border-t-4 border-green-500">
+                        <p class="text-slate-500 font-bold uppercase text-sm">Tingkat Partisipasi</p>
+                        <h3 class="text-5xl font-extrabold text-green-600 mt-2" id="pub-rc-persen">0%</h3>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm"><h3 class="text-center font-bold mb-4">OSIS</h3><div class="relative h-64"><canvas id="pubChartOSIS"></canvas></div></div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm"><h3 class="text-center font-bold mb-4">MPK</h3><div class="relative h-64"><canvas id="pubChartMPK"></canvas></div></div>
+                </div>
+                <div class="text-center mt-8">
+                    <button onclick="app.loadRealCount(true)" class="bg-blue-100 text-blue-700 px-6 py-2 rounded-full font-bold hover:bg-blue-200 transition"><i data-lucide="refresh-cw" class="w-4 h-4 inline mr-1"></i> Segarkan Data</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= LOGIN SISWA & ADMIN (Digabungkan layoutnya untuk mempersingkat baris) ================= -->
+        <div id="view-login-siswa" class="app-view hidden flex items-center justify-center py-20 px-4 bg-slate-100">
+            <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-10 border-t-8 border-blue-600">
+                <h2 class="text-3xl font-extrabold text-center mb-8">Bilik Suara</h2>
+                <form onsubmit="app.handleLogin(event)">
+                    <input type="number" id="nis" required placeholder="Masukkan NIS Anda" class="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl mb-6 text-center text-lg tracking-widest outline-none focus:border-blue-500">
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl transition">Masuk Bilik</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="view-login-admin" class="app-view hidden flex items-center justify-center py-20 px-4 bg-slate-900">
+            <div class="bg-slate-800 rounded-3xl shadow-2xl w-full max-w-md p-10 border border-slate-700">
+                <h2 class="text-3xl font-extrabold text-white text-center mb-8">Admin Panel</h2>
+                <form onsubmit="app.handleAdminLogin(event)">
+                    <input type="text" id="admin-user" required placeholder="Username" class="w-full px-5 py-4 bg-slate-900 border border-slate-600 text-white rounded-xl mb-4 outline-none focus:border-blue-500">
+                    <input type="password" id="admin-pass" required placeholder="Password" class="w-full px-5 py-4 bg-slate-900 border border-slate-600 text-white rounded-xl mb-6 outline-none focus:border-blue-500">
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl transition">Akses Panel</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ================= VOTING AREA ================= -->
+        <div id="view-voting" class="app-view hidden py-10 bg-slate-100">
+            <div class="max-w-7xl mx-auto px-4">
+                <div class="bg-white p-6 rounded-xl shadow-sm mb-8 flex justify-between items-center border-l-4 border-blue-600">
+                    <h2 class="text-2xl font-bold">Kertas Suara</h2>
+                    <span id="voter-name" class="bg-blue-50 text-blue-800 px-4 py-2 rounded-lg font-bold"></span>
+                </div>
+                
+                <div id="step-osis">
+                    <h3 class="text-center text-3xl font-bold mb-8">Pilih Ketua OSIS</h3>
+                    <div id="grid-osis" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center"></div>
+                    <div class="flex justify-end mt-8"><button onclick="app.nextStep()" class="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold">Lanjut MPK <i data-lucide="arrow-right" class="inline w-4 h-4"></i></button></div>
+                </div>
+
+                <div id="step-mpk" class="hidden">
+                    <h3 class="text-center text-3xl font-bold mb-8">Pilih Ketua MPK</h3>
+                    <div id="grid-mpk" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center"></div>
+                    <div class="flex justify-between mt-8">
+                        <button onclick="app.prevStep()" class="bg-slate-200 text-slate-700 px-6 py-3 rounded-xl font-bold">Kembali</button>
+                        <button onclick="app.confirmVote()" class="bg-green-600 text-white px-8 py-3 rounded-xl font-bold">Kirim Suara <i data-lucide="check" class="inline w-4 h-4"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= ADMIN DASHBOARD (FULL) ================= -->
+        <div id="view-admin-dashboard" class="app-view hidden bg-slate-100 min-h-screen">
+            <div class="max-w-7xl mx-auto px-4 py-8">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-6 rounded-2xl shadow-sm no-print">
+                    <h2 class="text-3xl font-extrabold text-slate-900">Administrator Panel</h2>
+                    <button onclick="app.navigate('landing')" class="bg-red-100 text-red-600 px-5 py-2 rounded-xl font-bold mt-4 md:mt-0">Keluar</button>
+                </div>
+
+                <!-- Admin Tabs -->
+                <div class="flex overflow-x-auto space-x-2 mb-6 bg-white p-2 rounded-xl shadow-sm no-print">
+                    <button onclick="app.switchTab('rc')" id="tab-btn-rc" class="admin-tab-btn flex-1 py-3 px-4 rounded-lg font-bold bg-blue-600 text-white transition">Real Count</button>
+                    <button onclick="app.switchTab('siswa')" id="tab-btn-siswa" class="admin-tab-btn flex-1 py-3 px-4 rounded-lg font-bold text-slate-600 hover:bg-slate-50 transition">Data Siswa</button>
+                    <button onclick="app.switchTab('paslon')" id="tab-btn-paslon" class="admin-tab-btn flex-1 py-3 px-4 rounded-lg font-bold text-slate-600 hover:bg-slate-50 transition">Data Paslon</button>
+                    <button onclick="app.switchTab('pengaturan')" id="tab-btn-pengaturan" class="admin-tab-btn flex-1 py-3 px-4 rounded-lg font-bold text-slate-600 hover:bg-slate-50 transition">Pengaturan</button>
+                    <button onclick="app.switchTab('ba')" id="tab-btn-ba" class="admin-tab-btn flex-1 py-3 px-4 rounded-lg font-bold text-slate-600 hover:bg-slate-50 transition">Berita Acara</button>
+                </div>
+
+                <!-- Tab: Real Count -->
+                <div id="tab-rc" class="admin-tab-content">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-blue-500">
+                            <p class="text-sm text-slate-500 font-bold uppercase">Total DPT</p><h3 class="text-3xl font-extrabold" id="rc-dpt">0</h3>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-green-500">
+                            <p class="text-sm text-slate-500 font-bold uppercase">Suara Masuk</p><h3 class="text-3xl font-extrabold" id="rc-masuk">0</h3>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-orange-500">
+                            <p class="text-sm text-slate-500 font-bold uppercase">Partisipasi</p><h3 class="text-3xl font-extrabold" id="rc-persen">0%</h3>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white p-6 rounded-2xl shadow-sm"><h3 class="font-bold text-center mb-4">Grafik OSIS</h3><div class="relative h-64"><canvas id="chartOSIS"></canvas></div></div>
+                        <div class="bg-white p-6 rounded-2xl shadow-sm"><h3 class="font-bold text-center mb-4">Grafik MPK</h3><div class="relative h-64"><canvas id="chartMPK"></canvas></div></div>
+                    </div>
+                    <button onclick="app.loadRealCount()" class="mt-6 bg-slate-800 text-white px-6 py-2 rounded-lg block mx-auto">Refresh Data</button>
+                </div>
+
+<!-- Tab: Data Siswa -->
+<div id="tab-siswa" class="admin-tab-content hidden">
+    <div class="bg-white p-6 rounded-2xl shadow-sm">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold">Kelola Data Pemilih (DPT)</h3>
+            <button onclick="app.modalSiswa()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold">+ Tambah Siswa</button>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50 text-slate-600 text-sm border-b">
+                        <th class="p-4">NIS</th>
+                        <th class="p-4">Nama Siswa</th>
+                        <!-- TAMBAHAN KOLOM KELAS -->
+                        <th class="p-4">Kelas</th>
+                        <th class="p-4">Status</th>
+                        <th class="p-4">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="table-siswa" class="text-sm divide-y divide-slate-100"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+                <!-- Tab: Data Paslon -->
+                <div id="tab-paslon" class="admin-tab-content hidden">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold">Kelola Kandidat Paslon</h3>
+                            <button onclick="app.modalPaslon()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold">+ Tambah Paslon</button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead><tr class="bg-slate-50 text-slate-600 text-sm border-b"><th class="p-4">ID/Tipe</th><th class="p-4">Kandidat</th><th class="p-4">Visi Misi</th><th class="p-4">Aksi</th></tr></thead>
+                                <tbody id="table-paslon" class="text-sm divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Pengaturan -->
+                <div id="tab-pengaturan" class="admin-tab-content hidden">
+                    <div class="bg-white p-8 rounded-2xl shadow-sm max-w-2xl mx-auto">
+                        <h3 class="text-xl font-bold mb-6 border-b pb-4">Pengaturan Website</h3>
+                        <div class="mb-4">
+                            <label class="block text-sm font-bold mb-2">Nama Website (Header/Berita Acara)</label>
+                            <input type="text" id="set-nama" class="w-full border p-3 rounded-lg outline-none focus:border-blue-500">
+                        </div>
+                        <div class="mb-6">
+                            <label class="block text-sm font-bold mb-2">URL Logo Sekolah/KPU (Bisa Link Google Drive / Imgur)</label>
+                            <input type="text" id="set-logo" class="w-full border p-3 rounded-lg outline-none focus:border-blue-500">
+                        </div>
+                        <button onclick="app.simpanPengaturan()" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold w-full">Simpan Perubahan</button>
+                    </div>
+                </div>
+
+                <!-- Tab: Berita Acara (Print Area) -->
+                <div id="tab-ba" class="admin-tab-content hidden">
+                    <div class="mb-6 text-right no-print">
+                        <button onclick="app.cetakBA()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-bold flex items-center inline-flex shadow-lg"><i data-lucide="printer" class="w-5 h-5 mr-2"></i> Cetak Dokumen PDF/Kertas</button>
+                    </div>
+                    
+                    <!-- Kertas Berita Acara -->
+                    <div id="print-area" class="bg-white p-10 md:p-16 rounded-sm shadow-sm border border-slate-200 mx-auto max-w-4xl text-black">
+                        <!-- KOP SURAT -->
+                        <div class="flex items-center justify-center border-b-4 border-black pb-6 mb-8 text-center">
+                            <img id="ba-logo" src="" class="w-24 h-24 object-contain mr-6 hidden">
+                            <div>
+                                <h1 class="text-2xl font-extrabold uppercase">Panitia Pemilihan Raya (Pemira)</h1>
+                                <h2 id="ba-namaweb" class="text-xl font-bold">E-Voting Pemilu</h2>
+                                <p class="text-sm mt-1">Laporan Resmi Hasil Perhitungan Suara Secara Digital</p>
+                            </div>
+                        </div>
+
+                        <h3 class="text-xl font-bold text-center underline mb-8">BERITA ACARA HASIL PEMILIHAN</h3>
+
+                        <p class="mb-4 text-justify leading-relaxed">
+                            Pada hari ini, <span id="ba-tanggal" class="font-bold"></span>, telah dilaksanakan sistem pemungutan suara secara elektronik (E-Voting) dengan rekapitulasi data partisipasi sebagai berikut:
+                        </p>
+
+                        <div class="ml-4 mb-6">
+                            <p>1. Total Pemilih Tetap (DPT) : <span id="ba-dpt" class="font-bold"></span> Siswa</p>
+                            <p>2. Suara Masuk (Sah) : <span id="ba-masuk" class="font-bold"></span> Suara</p>
+                            <p>3. Tingkat Partisipasi : <span id="ba-persen" class="font-bold"></span>%</p>
+                        </div>
+
+                        <p class="mb-4 text-justify leading-relaxed">Berikut adalah rincian hasil perolehan suara untuk masing-masing kandidat:</p>
+
+                        <div class="grid grid-cols-2 gap-8 mb-10">
+                            <div>
+                                <h4 class="font-bold mb-2 bg-slate-200 px-2 py-1">A. Pemilihan OSIS</h4>
+                                <ul id="ba-list-osis" class="list-disc ml-5 space-y-1"></ul>
+                            </div>
+                            <div>
+                                <h4 class="font-bold mb-2 bg-slate-200 px-2 py-1">B. Pemilihan MPK</h4>
+                                <ul id="ba-list-mpk" class="list-disc ml-5 space-y-1"></ul>
+                            </div>
+                        </div>
+
+                        <p class="mb-10 text-justify leading-relaxed">
+                            Demikian berita acara ini dibuat secara otomatis oleh sistem dengan mengacu pada database log suara yang terekam secara sah tanpa ada manipulasi data. Dokumen ini dapat dipertanggungjawabkan keabsahannya.
+                        </p>
+
+                        <!-- Tanda Tangan -->
+                        <div class="flex justify-between mt-12 pt-8">
+                            <div class="text-center w-1/3">
+                                <p class="mb-20">Waka. Kesiswaan</p>
+                                <p class="font-bold underline">................................</p>
+                            </div>
+                            <div class="text-center w-1/3">
+                                <p class="mb-20">Pembina Osis</p>
+                                <p class="font-bold underline">................................</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="bg-slate-900 text-slate-400 py-6 text-center border-t border-slate-800 no-print">
+        <p class="text-sm font-medium" id="footer-text">&copy; 2026 E-Voting System.</p>
+    </footer>
+
+    <script>
+        const app = {
+            dataPaslon: [], settings: {}, currentUser: null,
+            selectedOSIS: null, selectedMPK: null, charts: {}, pubCharts: {},
+            
+            showLoading: (s, t='Memproses...') => {
+                document.getElementById('loading-overlay').style.display = s ? 'flex' : 'none';
+                document.getElementById('loading-text').innerText = t;
+            },
+
+            navigate: (id) => {
+                document.querySelectorAll('.app-view').forEach(el => el.classList.add('hidden'));
+                document.getElementById(`view-${id}`).classList.remove('hidden');
+                window.scrollTo(0,0);
+                if (id === 'public-realcount') app.loadRealCount(true);
+                if (id === 'admin-dashboard') { app.switchTab('rc'); app.loadRealCount(false); }
+            },
+
+            switchTab: (tabId) => {
+                document.querySelectorAll('.admin-tab-content').forEach(el => el.classList.add('hidden'));
+                document.querySelectorAll('.admin-tab-btn').forEach(el => {
+                    el.classList.remove('bg-blue-600', 'text-white'); el.classList.add('text-slate-600', 'bg-transparent');
+                });
+                document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+                document.getElementById(`tab-btn-${tabId}`).classList.add('bg-blue-600', 'text-white');
+                document.getElementById(`tab-btn-${tabId}`).classList.remove('text-slate-600', 'bg-transparent');
+                
+                if(tabId === 'siswa') app.loadSiswa();
+                if(tabId === 'paslon') app.loadPaslonAdmin();
+                if(tabId === 'ba') app.generateBA();
+            },
+
+            // INIT (GLOBAL DATA)
+            init: () => {
+                lucide.createIcons(); AOS.init();
+                app.showLoading(true, 'Menyiapkan Sistem...');
+                google.script.run.withSuccessHandler(data => {
+                    app.settings = data.settings;
+                    app.dataPaslon = data.paslon;
+                    
+                    // Terapkan Pengaturan
+                    document.title = app.settings.NamaWeb;
+                    document.getElementById('nav-title').innerText = app.settings.NamaWeb;
+                    document.getElementById('footer-text').innerText = `© ${new Date().getFullYear()} ${app.settings.NamaWeb}`;
+                    document.getElementById('set-nama').value = app.settings.NamaWeb;
+                    document.getElementById('set-logo').value = app.settings.LogoURL;
+                    
+                    if(app.settings.LogoURL) {
+                        const logos = ['nav-logo', 'ba-logo'];
+                        logos.forEach(id => {
+                            let img = document.getElementById(id);
+                            img.src = app.settings.LogoURL; img.classList.remove('hidden');
+                        });
+                        document.getElementById('nav-logo-fallback').classList.add('hidden');
+                    }
+                    
+                    app.renderLandingCards();
+                    app.showLoading(false);
+                }).getInitialData();
+            },
+
+            // LANDING PAGE RENDER
+            renderLandingCards: () => {
+                const render = (tipe, targetId) => {
+                    const cont = document.getElementById(targetId); cont.innerHTML = '';
+                    app.dataPaslon.filter(p => p.tipe === tipe).forEach(p => {
+                        cont.innerHTML += `
+                            <div class="bg-white rounded-3xl shadow-lg overflow-hidden w-full max-w-sm border border-slate-100 transform hover:-translate-y-2 transition duration-300">
+                                <div class="h-64 relative">
+                                    <img src="${p.foto}" class="w-full h-full object-cover">
+                                    <span class="absolute bottom-4 left-4 bg-blue-600 text-white font-bold px-4 py-1 rounded-full text-sm shadow">No. ${p.nomor}</span>
+                                </div>
+                                <div class="p-6">
+                                    <h3 class="font-extrabold text-xl mb-3">${p.nama}</h3>
+                                    <p class="text-sm text-slate-600 italic leading-relaxed">"${p.visi}"</p>
+                                </div>
+                            </div>
+                        `;
+                    });
+                };
+                render('OSIS', 'landing-grid-osis');
+                render('MPK', 'landing-grid-mpk');
+            },
+
+            // LOGIN SISWA
+            handleLogin: (e) => {
+                e.preventDefault();
+                app.showLoading(true, 'Verifikasi NIS...');
+                google.script.run.withSuccessHandler(res => {
+                    app.showLoading(false);
+                    if (res.status === 'ok') {
+                        app.currentUser = res;
+                        document.getElementById('voter-name').innerText = `${res.nama} (${res.nis})`;
+                        app.selectedOSIS = null; app.selectedMPK = null;
+                        app.renderVoteCards('OSIS'); app.renderVoteCards('MPK');
+                        app.navigate('voting');
+                        document.getElementById('step-mpk').classList.add('hidden');
+                        document.getElementById('step-osis').classList.remove('hidden');
+                    } else Swal.fire('Gagal', res.pesan, 'error');
+                }).verifikasiNIS(document.getElementById('nis').value);
+            },
+
+            // RENDER VOTING CARDS
+            renderVoteCards: (tipe) => {
+                const cont = document.getElementById(`grid-${tipe.toLowerCase()}`); cont.innerHTML = '';
+                app.dataPaslon.filter(p => p.tipe === tipe).forEach(p => {
+                    const sel = app[`selected${tipe}`] === p.id;
+                    const css = sel ? 'border-4 border-blue-500 scale-105' : 'border-2 border-transparent';
+                    cont.innerHTML += `
+                        <div onclick="app.selectCandidate('${tipe}', '${p.id}')" class="bg-white rounded-2xl overflow-hidden w-full max-w-sm cursor-pointer transition ${css} shadow-md">
+                            <img src="${p.foto}" class="w-full h-48 object-cover">
+                            <div class="p-4 text-center">
+                                <span class="bg-slate-800 text-white text-xs px-3 py-1 rounded-full mb-2 inline-block">Nomor ${p.nomor}</span>
+                                <h3 class="font-bold text-lg">${p.nama}</h3>
+                            </div>
+                        </div>`;
+                });
+            },
+            selectCandidate: (tipe, id) => { app[`selected${tipe}`] = id; app.renderVoteCards(tipe); },
+            nextStep: () => { if(app.selectedOSIS){ document.getElementById('step-osis').classList.add('hidden'); document.getElementById('step-mpk').classList.remove('hidden'); window.scrollTo(0,0);} else Swal.fire('Oops','Pilih OSIS dulu!','warning'); },
+            prevStep: () => { document.getElementById('step-mpk').classList.add('hidden'); document.getElementById('step-osis').classList.remove('hidden'); window.scrollTo(0,0); },
+
+            confirmVote: () => {
+                if(!app.selectedMPK) return Swal.fire('Oops','Pilih MPK dulu!','warning');
+                Swal.fire({title:'Kirim Suara?', icon:'question', showCancelButton:true, confirmButtonText:'Ya, Kirim!'}).then(r => {
+                    if(r.isConfirmed) {
+                        app.showLoading(true, 'Menyimpan Suara...');
+                        google.script.run.withSuccessHandler(() => {
+                            app.showLoading(false); Swal.fire('Berhasil!','Terima kasih.','success').then(() => { app.navigate('landing'); document.getElementById('nis').value=''; });
+                        }).simpanSuara(app.currentUser.nis, app.currentUser.rowIndex, app.selectedOSIS, app.selectedMPK);
+                    }
+                });
+            },
+
+            // ADMIN & REAL COUNT
+            handleAdminLogin: (e) => {
+                e.preventDefault(); app.showLoading(true, 'Verifikasi...');
+                google.script.run.withSuccessHandler(res => {
+                    app.showLoading(false);
+                    if(res.status==='ok') {
+                        document.getElementById('admin-user').value=''; document.getElementById('admin-pass').value='';
+                        app.navigate('admin-dashboard');
+                    } else Swal.fire('Gagal', res.pesan, 'error');
+                }).verifikasiAdmin(document.getElementById('admin-user').value, document.getElementById('admin-pass').value);
+            },
+
+            loadRealCount: (isPublic = false) => {
+                app.showLoading(true, 'Ambil Data Real Count...');
+                google.script.run.withSuccessHandler(data => {
+                    app.showLoading(false);
+                    let persen = data.totalPemilih > 0 ? ((data.suaraMasuk/data.totalPemilih)*100).toFixed(1) : 0;
+                    
+                    if(isPublic) {
+                        document.getElementById('pub-rc-masuk').innerText = data.suaraMasuk;
+                        document.getElementById('pub-rc-persen').innerText = persen + '%';
+                        app.renderChart(app.pubCharts, 'pubChartOSIS', 'pubChartMPK', data);
+                    } else {
+                        document.getElementById('rc-dpt').innerText = data.totalPemilih;
+                        document.getElementById('rc-masuk').innerText = data.suaraMasuk;
+                        document.getElementById('rc-persen').innerText = persen + '%';
+                        app.renderChart(app.charts, 'chartOSIS', 'chartMPK', data);
+                    }
+                    
+                    // Simpan data mentah untuk BA
+                    app.lastRealCountData = data; 
+                }).getRealCount();
+            },
+
+            renderChart: (chartObj, idOSIS, idMPK, data) => {
+                if(chartObj.osis) chartObj.osis.destroy(); if(chartObj.mpk) chartObj.mpk.destroy();
+                const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
+                chartObj.osis = new Chart(document.getElementById(idOSIS), {
+                    type: 'doughnut', data: { labels: Object.keys(data.osis).map(k=>"Paslon "+k), datasets: [{ data: Object.values(data.osis), backgroundColor: colors }] },
+                    options: { maintainAspectRatio: false }
+                });
+                chartObj.mpk = new Chart(document.getElementById(idMPK), {
+                    type: 'bar', data: { labels: Object.keys(data.mpk).map(k=>"Kandidat "+k), datasets: [{ label: 'Suara', data: Object.values(data.mpk), backgroundColor: '#3b82f6' }] },
+                    options: { maintainAspectRatio: false }
+                });
+            },
+
+// CRUD SISWA
+            loadSiswa: () => {
+                app.showLoading(true);
+                google.script.run.withSuccessHandler(data => {
+                    app.showLoading(false);
+                    const tbody = document.getElementById('table-siswa'); 
+                    tbody.innerHTML = '';
+                    
+                    data.forEach(s => {
+                        // 1. Mencegah error 'undefined' untuk kolom kelas
+                        const kelasAman = (s.kelas && s.kelas !== 'undefined') ? s.kelas : '-';
+                        
+                        // 2. Menyiapkan badge status
+                        const badge = s.status === 'Sudah Memilih' 
+                            ? '<span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">Sudah</span>' 
+                            : '<span class="bg-slate-100 text-slate-500 px-2 py-1 rounded text-xs font-bold">Belum</span>';
+                        
+                        // 3. Render tabel dengan menyisipkan <td class="p-4">${kelasAman}</td>
+                        tbody.innerHTML += `
+                            <tr class="hover:bg-slate-50 border-b border-slate-100">
+                                <td class="p-4 font-mono">${s.nis}</td>
+                                <td class="p-4 font-bold text-slate-800">${s.nama}</td>
+                                <td class="p-4 text-slate-600">${kelasAman}</td>
+                                <td class="p-4">${badge}</td>
+                                <td class="p-4">
+                                    <button onclick="app.modalSiswa('${s.nis}', '${s.nama}', '${kelasAman}')" class="text-blue-600 mr-3 text-sm font-bold bg-blue-50 px-3 py-1 rounded hover:bg-blue-100">Edit</button>
+                                    <button onclick="app.hapusSiswa('${s.nis}')" class="text-red-600 text-sm font-bold bg-red-50 px-3 py-1 rounded hover:bg-red-100">Hapus</button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                }).getSiswaData();
+            },
+
+            // Modal Tambah/Edit (dengan penambahan input kelas)
+            modalSiswa: (nis='', nama='', kelas='') => {
+                Swal.fire({
+                    title: nis ? 'Edit Data Siswa' : 'Tambah Siswa',
+                    html: `
+                        <div class="space-y-3 mt-4 text-left">
+                            <div>
+                                <label class="text-sm font-bold text-slate-600 ml-1">NIS</label>
+                                <input id="sw-nis" class="w-full border p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Masukkan NIS" value="${nis}" type="number">
+                            </div>
+                            <div>
+                                <label class="text-sm font-bold text-slate-600 ml-1">Nama Lengkap</label>
+                                <input id="sw-nama" class="w-full border p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Masukkan Nama Siswa" value="${nama}">
+                            </div>
+                            <div>
+                                <label class="text-sm font-bold text-slate-600 ml-1">Kelas</label>
+                                <input id="sw-kelas" class="w-full border p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Contoh: XII IPA 1" value="${kelas === '-' ? '' : kelas}">
+                            </div>
+                        </div>
+                    `,
+                    showCancelButton: true, 
+                    confirmButtonText: 'Simpan',
+                    cancelButtonText: 'Batal',
+                    customClass: { confirmButton: 'bg-blue-600 text-white px-6 py-2 rounded-lg font-bold mr-2', cancelButton: 'bg-slate-200 text-slate-700 px-6 py-2 rounded-lg font-bold' },
+                    buttonsStyling: false,
+                    preConfirm: () => {
+                        const nisBaru = document.getElementById('sw-nis').value;
+                        const nama = document.getElementById('sw-nama').value;
+                        const kelas = document.getElementById('sw-kelas').value;
+                        
+                        if(!nisBaru || !nama) {
+                            Swal.showValidationMessage('NIS dan Nama tidak boleh kosong!');
+                            return false;
+                        }
+
+                        return { nisBaru, nama, kelas }
+                    }
+                }).then((res) => {
+                    if(res.isConfirmed && res.value.nisBaru) {
+                        app.showLoading(true);
+                        // Mengirim 4 parameter (nisLama, nisBaru, nama, kelas) ke Apps Script
+                        google.script.run
+                            .withSuccessHandler(() => app.loadSiswa())
+                            .simpanSiswa(nis, res.value.nisBaru, res.value.nama, res.value.kelas);
+                    }
+                });
+            },
+            // CRUD PASLON
+            loadPaslonAdmin: () => {
+                const tbody = document.getElementById('table-paslon'); tbody.innerHTML = '';
+                app.dataPaslon.forEach(p => {
+                    tbody.innerHTML += `<tr><td class="p-4 font-bold text-blue-600">${p.id} <br><span class="text-xs text-slate-500">${p.tipe} - No.${p.nomor}</span></td><td class="p-4 font-bold flex items-center"><img src="${p.foto}" class="w-10 h-10 rounded-full mr-3 object-cover">${p.nama}</td><td class="p-4 text-xs italic line-clamp-2 w-48">${p.visi}</td><td class="p-4"><button onclick="app.modalPaslon('${p.id}')" class="text-blue-600 mr-3 text-sm font-bold">Edit</button><button onclick="app.hapusPaslon('${p.id}')" class="text-red-600 text-sm font-bold">Hapus</button></td></tr>`;
+                });
+            },
+            modalPaslon: (idLama='') => {
+                let p = idLama ? app.dataPaslon.find(x=>x.id === idLama) : {id:'', tipe:'OSIS', nomor:'', nama:'', visi:'', foto:''};
+                Swal.fire({
+                    title: idLama ? 'Edit Paslon' : 'Tambah Paslon',
+                    html: `
+                        <input id="p-id" class="swal2-input" placeholder="ID (cth: O1 / M1)" value="${p.id}">
+                        <select id="p-tipe" class="swal2-select"><option ${p.tipe==='OSIS'?'selected':''}>OSIS</option><option ${p.tipe==='MPK'?'selected':''}>MPK</option></select>
+                        <input id="p-no" class="swal2-input" placeholder="Nomor Urut (1, 2)" value="${p.nomor}" type="number">
+                        <input id="p-nama" class="swal2-input" placeholder="Nama Paslon" value="${p.nama}">
+                        <textarea id="p-visi" class="swal2-textarea" placeholder="Visi Misi">${p.visi}</textarea>
+                        <input id="p-foto" class="swal2-input" placeholder="Link Foto URL" value="${p.foto}">
+                    `,
+                    showCancelButton: true, confirmButtonText: 'Simpan',
+                    preConfirm: () => {
+                        return { id: document.getElementById('p-id').value, tipe: document.getElementById('p-tipe').value, no: document.getElementById('p-no').value, nama: document.getElementById('p-nama').value, visi: document.getElementById('p-visi').value, foto: document.getElementById('p-foto').value }
+                    }
+                }).then((res) => {
+                    if(res.isConfirmed && res.value.id) {
+                        app.showLoading(true);
+                        google.script.run.withSuccessHandler(()=>{ window.location.reload(); }).simpanPaslon(idLama, res.value.id, res.value.tipe, res.value.no, res.value.nama, res.value.visi, res.value.foto);
+                    }
+                });
+            },
+            hapusPaslon: (id) => {
+                Swal.fire({title: 'Hapus Paslon?', icon:'warning', showCancelButton:true}).then(r => {
+                    if(r.isConfirmed){ app.showLoading(true); google.script.run.withSuccessHandler(()=>{window.location.reload();}).hapusPaslon(id); }
+                })
+            },
+
+            // PENGATURAN
+            simpanPengaturan: () => {
+                const nw = document.getElementById('set-nama').value;
+                const lg = document.getElementById('set-logo').value;
+                app.showLoading(true);
+                google.script.run.withSuccessHandler(()=>{ window.location.reload(); }).saveSettings(nw, lg);
+            },
+
+            // BERITA ACARA
+            generateBA: () => {
+                if(!app.lastRealCountData) { app.loadRealCount(); setTimeout(app.generateBA, 1500); return; }
+                const data = app.lastRealCountData;
+                
+                // Format Tanggal
+                const tgl = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                document.getElementById('ba-tanggal').innerText = tgl;
+                
+                // Info Dasar
+                document.getElementById('ba-namaweb').innerText = app.settings.NamaWeb.toUpperCase();
+                document.getElementById('ba-dpt').innerText = data.totalPemilih;
+                document.getElementById('ba-masuk').innerText = data.suaraMasuk;
+                document.getElementById('ba-persen').innerText = data.totalPemilih > 0 ? ((data.suaraMasuk/data.totalPemilih)*100).toFixed(1) : 0;
+
+                // List Hasil
+                const renderList = (hasil, tipe, targetId) => {
+                    const ul = document.getElementById(targetId); ul.innerHTML = '';
+                    const paslonData = app.dataPaslon.filter(p => p.tipe === tipe);
+                    paslonData.forEach(p => {
+                        const suara = hasil[p.id] || 0;
+                        ul.innerHTML += `<li>Paslon No. ${p.nomor} (${p.nama}) = <b>${suara} Suara</b></li>`;
+                    });
+                };
+
+                renderList(data.osis, 'OSIS', 'ba-list-osis');
+                renderList(data.mpk, 'MPK', 'ba-list-mpk');
+            },
+
+            cetakBA: () => { window.print(); }
+        };
+
+        window.onload = app.init;
+    </script>
+</body>
+</html>
