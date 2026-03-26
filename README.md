@@ -3,6 +3,10 @@
 Panduan ini menjelaskan cara menghubungkan sistem **E-Voting** dengan **Google Sheets** sebagai database, lengkap dengan tampilan landing page profesional dan fitur **Admin Dashboard (Real Count)**.
 
 ---
+## 🚀 Demo Aplikasi
+🔗 https://evoting.smksteknologi.sch.id/
+
+---
 
 ## 🚀 Fitur Utama
 - ✅ Landing Page profesional
